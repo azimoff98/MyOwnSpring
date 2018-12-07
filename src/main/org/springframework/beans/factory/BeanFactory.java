@@ -1,5 +1,7 @@
 package main.org.springframework.beans.factory;
 
+import main.javax.annotation.PostConstruct;
+import main.javax.annotation.PreDestroy;
 import main.org.springframework.beans.factory.annotation.Autowired;
 import main.org.springframework.beans.factory.config.BeanPostProcessor;
 import main.org.springframework.beans.factory.stereotype.Component;
@@ -16,6 +18,7 @@ import java.util.*;
 public class BeanFactory {
 
     private Map<String, Object> singletons = new HashMap<>();
+
 
     private List<BeanPostProcessor> postProcessors = new ArrayList<>();
 
@@ -124,7 +127,55 @@ public class BeanFactory {
         }
     }
 
+    public void postConstruct(){
+
+        for(Object bean : singletons.values()){
+            for(Method method : bean.getClass().getMethods()){
+                if(method.isAnnotationPresent(PostConstruct.class)){
+                    try{
+                        method.invoke(bean);
+                    }catch (IllegalAccessException | InvocationTargetException e){
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+    }
+
+    public void close(){
+        for(Object bean : singletons.values()){
+            for(Method method : bean.getClass().getMethods()){
+                if(method.isAnnotationPresent(PreDestroy.class)){
+                    try{
+                        method.invoke(bean);
+                    }catch (IllegalAccessException | InvocationTargetException e){
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            if(bean instanceof  DisposableBean){
+                ((DisposableBean) bean).destroy();
+            }
+        }
 
 
+    }
 
+    public Map<String, Object> getSingletons() {
+        return singletons;
+    }
+
+    public void setSingletons(Map<String, Object> singletons) {
+        this.singletons = singletons;
+    }
+
+    public List<BeanPostProcessor> getPostProcessors() {
+        return postProcessors;
+    }
+
+    public void setPostProcessors(List<BeanPostProcessor> postProcessors) {
+        this.postProcessors = postProcessors;
+    }
 }
